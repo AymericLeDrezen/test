@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Countdown for Aleksandra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      font-family: 'Orbitron', monospace;
+    }
+
+    body {
+      background: url('replicate-prediction-cq7agqjn0srma0cshkk8fmb3bc.jpg') no-repeat top center;
+      background-size: auto 100vh; /* fit vertically, center horizontally */
+    }
+
+    .countdown-part {
+      position: absolute;
+      color: #ebebe5;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px black;
+      display: flex;
+      align-items: baseline;
+      white-space: nowrap;
+      /* enable tabular numbers to reduce digit width variance */
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
+
+    .number {
+      font-size: calc(30 / 768 * 100vh); /* smaller numbers */
+      margin-right: 0.25em;
+      display: inline-block; /* so width can be fixed */
+    }
+
+    /* Fix widths so labels/colons never shift as digits change */
+    .w2ch { width: 2ch; text-align: right; } /* 00–59 style */
+    /* You can add .w3ch for days if you want fully static there as well */
+    /* .w3ch { width: 3ch; text-align: right; } */
+
+    .label {
+      font-size: calc(18 / 768 * 100vh); /* smaller labels */
+      margin-right: 0.6em;
+    }
+
+    /* Adjust positions */
+    #years-days {
+      top: calc((545) / 768 * 100vh);
+      left: 50%;
+      transform: translateX(
+        calc(
+          (750 / 768 * 100vh) - (1153 / 2 / 768 * 100vh) + (30 / 768 * 100vh)
+        )
+      );
+    }
+
+    #time {
+      top: calc((600) / 768 * 100vh);
+      left: 50%;
+      transform: translateX(
+        calc(
+          (750 / 768 * 100vh) - (1153 / 2 / 768 * 100vh) + (30 / 768 * 100vh)
+        )
+      );
+    }
+
+    /* Reduce spacing inside time row */
+    #time .number {
+      margin-right: 0.15em;
+    }
+
+    #time .label {
+      margin-right: 0.15em;
+    }
+
+    /* Keep seconds label attached to number */
+    .seconds-block {
+      display: flex;
+      align-items: baseline;
+    }
+
+    /* --- Sound enable button --- */
+    #sound-btn {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 9999;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(0,0,0,0.55);
+      color: #ebebe5;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      user-select: none;
+    }
+    #sound-btn.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="years-days" class="countdown-part">
+    <span class="number" id="years">00</span><span class="label">YEARS</span>
+    <span class="number" id="days">00</span><span class="label">DAYS</span>
+  </div>
+
+  <div id="time" class="countdown-part">
+    <span class="number w2ch" id="hours">00</span><span class="label">:</span>
+    <span class="number w2ch" id="minutes">00</span><span class="label">:</span>
+    <span class="seconds-block">
+      <span class="number w2ch" id="seconds-num">00</span><span class="label">SECONDS</span>
+    </span>
+  </div>
+
+  <!-- Background music: set your MP3 path here -->
+  <audio id="bgm" src="music.mp3" preload="auto" loop playsinline></audio>
+
+  <!-- Shown only if autoplay is blocked -->
+  <button id="sound-btn" class="hidden" type="button">Enable sound 🔊</button>
+
+  <script>
+    // ========= COUNT-UP (starts October 1, 2024) =========
+    // Counts UP from the given start date, showing elapsed years/days/hours/minutes/seconds.
+    // Uses calendar-aware year calculation so leap years are handled correctly.
+    const startDate = new Date("2024-10-01T00:00:00");
+
+    function addYears(date, years) {
+      const d = new Date(date);
+      d.setFullYear(d.getFullYear() + years);
+      return d;
+    }
+
+    function updateCountUp() {
+      const now = new Date();
+
+      // If we're before the start date, just show zeros (starts ticking at the start moment).
+      if (now < startDate) {
+        document.getElementById("years").innerText = "00";
+        document.getElementById("days").innerText = "00";
+        document.getElementById("hours").innerText = "00";
+        document.getElementById("minutes").innerText = "00";
+        document.getElementById("seconds-num").innerText = "00";
+        return;
+      }
+
+      // Full elapsed years since startDate (calendar-accurate, handles leap years)
+      let years = 0;
+      while (addYears(startDate, years + 1) <= now) {
+        years++;
+      }
+      const afterYears = addYears(startDate, years);
+
+      // Remaining time after removing full years
+      let remainingMs = now - afterYears;
+      const dayMs = 24 * 60 * 60 * 1000;
+      const hourMs = 60 * 60 * 1000;
+      const minMs = 60 * 1000;
+      const secMs = 1000;
+
+      const days = Math.floor(remainingMs / dayMs);
+      remainingMs -= days * dayMs;
+
+      const hours = Math.floor(remainingMs / hourMs);
+      remainingMs -= hours * hourMs;
+
+      const minutes = Math.floor(remainingMs / minMs);
+      remainingMs -= minutes * minMs;
+
+      const seconds = Math.floor(remainingMs / secMs);
+
+      // Update UI (padStart keeps the digital look)
+      document.getElementById("years").innerText = years.toString().padStart(2, '0');
+      document.getElementById("days").innerText = days.toString().padStart(2, '0');
+      document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
+      document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
+      document.getElementById("seconds-num").innerText = seconds.toString().padStart(2, '0');
+    }
+
+    const interval = setInterval(updateCountUp, 1000);
+    updateCountUp();
+    // ========= END COUNT-UP =========
+
+
+    // ========= AUDIO AUTOPLAY HELPER (unchanged) =========
+    const audioEl = document.getElementById('bgm');
+    const soundBtn = document.getElementById('sound-btn');
+    let soundEnabled = false;
+
+    // Try autoplay on load; if it fails, show the button and wait for a gesture.
+    function tryAutoplay() {
+      // Some browsers require volume to be set before play()
+      audioEl.volume = 0.8;
+
+      // Attempt to play right away
+      const playAttempt = audioEl.play();
+      if (playAttempt !== undefined) {
+        playAttempt.then(() => {
+          soundEnabled = true;
+          hideSoundButton();
+        }).catch(() => {
+          // Autoplay blocked; wait for a user gesture
+          showSoundButton();
+          attachGestureListeners();
+        });
+      }
+    }
+
+    function showSoundButton() {
+      soundBtn.classList.remove('hidden');
+    }
+    function hideSoundButton() {
+      soundBtn.classList.add('hidden');
+      detachGestureListeners();
+    }
+
+    // Called on a gesture (click/touch/keydown)
+    function safePlayAudio() {
+      if (soundEnabled) return;
+      // For Safari iOS: resuming web audio context if needed
+      if (typeof window.AudioContext !== "undefined") {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        // We create then immediately close to poke the audio stack
+        setTimeout(() => ctx.close(), 0);
+      }
+
+      audioEl.play().then(() => {
+        soundEnabled = true;
+        hideSoundButton();
+      }).catch(() => {
+        showSoundButton();
+      });
+    }
+
+    function onFirstGesture() {
+      safePlayAudio();
+    }
+
+    function attachGestureListeners() {
+      window.addEventListener('click', onFirstGesture, { once: true, capture: true });
+      window.addEventListener('touchstart', onFirstGesture, { once: true, capture: true, passive: true });
+      window.addEventListener('keydown', onFirstGesture, { once: true, capture: true });
+    }
+
+    function detachGestureListeners() {
+      window.removeEventListener('click', onFirstGesture, { capture: true });
+      window.removeEventListener('touchstart', onFirstGesture, { capture: true });
+      window.removeEventListener('keydown', onFirstGesture, { capture: true });
+    }
+
+    // If the tab becomes visible again after interaction, ensure playback
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && soundEnabled && audioEl.paused) {
+        audioEl.play().catch(() => {});
+      }
+    });
+
+    // Button explicit enable
+    soundBtn.addEventListener('click', () => {
+      safePlayAudio();
+    });
+
+    // Kick things off once the DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', tryAutoplay);
+    } else {
+      tryAutoplay();
+    }
+    // ========= END AUDIO AUTOPLAY HELPER =========
+  </script>
+</body>
+</html>
