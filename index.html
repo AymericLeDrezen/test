@@ -29,28 +29,23 @@
       display: flex;
       align-items: baseline;
       white-space: nowrap;
-      /* enable tabular numbers to reduce digit width variance */
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
     }
 
     .number {
-      font-size: calc(30 / 768 * 100vh); /* smaller numbers */
+      font-size: calc(30 / 768 * 100vh);
       margin-right: 0.25em;
-      display: inline-block; /* so width can be fixed */
+      display: inline-block;
     }
 
-    /* Fix widths so labels/colons never shift as digits change */
-    .w2ch { width: 2ch; text-align: right; } /* 00–59 style */
-    /* You can add .w3ch for days if you want fully static there as well */
-    /* .w3ch { width: 3ch; text-align: right; } */
+    .w2ch { width: 2ch; text-align: right; }
 
     .label {
-      font-size: calc(18 / 768 * 100vh); /* smaller labels */
+      font-size: calc(18 / 768 * 100vh);
       margin-right: 0.6em;
     }
 
-    /* Adjust positions */
     #years-days {
       top: calc((545) / 768 * 100vh);
       left: 50%;
@@ -71,7 +66,6 @@
       );
     }
 
-    /* Reduce spacing inside time row */
     #time .number {
       margin-right: 0.15em;
     }
@@ -80,13 +74,11 @@
       margin-right: 0.15em;
     }
 
-    /* Keep seconds label attached to number */
     .seconds-block {
       display: flex;
       align-items: baseline;
     }
 
-    /* --- Sound enable button --- */
     #sound-btn {
       position: fixed;
       right: 12px;
@@ -106,9 +98,22 @@
     #sound-btn.hidden {
       display: none;
     }
+
+    /* Mobile message */
+    #mobile-message {
+      display: none;
+      color: #ebebe5;
+      text-align: center;
+      font-size: 1.2rem;
+      padding: 2rem;
+    }
   </style>
 </head>
 <body>
+  <div id="mobile-message">
+    Discover who is the most amazing girlfriend in the world on your desktop 💻
+  </div>
+
   <div id="years-days" class="countdown-part">
     <span class="number" id="years">00</span><span class="label">YEARS</span>
     <span class="number" id="days">00</span><span class="label">DAYS</span>
@@ -122,16 +127,31 @@
     </span>
   </div>
 
-  <!-- Background music: set your MP3 path here -->
   <audio id="bgm" src="music.mp3" preload="auto" loop playsinline></audio>
-
-  <!-- Shown only if autoplay is blocked -->
   <button id="sound-btn" class="hidden" type="button">Enable sound 🔊</button>
 
   <script>
+    // ========== MOBILE DETECTION ==========
+    function isMobile() {
+      return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+             || window.innerWidth < 768;
+    }
+
+    function handleDevice() {
+      if (isMobile()) {
+        document.body.style.background = "black";
+        document.getElementById("mobile-message").style.display = "block";
+        document.getElementById("years-days").style.display = "none";
+        document.getElementById("time").style.display = "none";
+        document.getElementById("sound-btn").style.display = "none";
+      }
+    }
+    handleDevice();
+    window.addEventListener("resize", handleDevice);
+    // ========== END MOBILE DETECTION ==========
+
+
     // ========= COUNT-UP (starts October 1, 2024) =========
-    // Counts UP from the given start date, showing elapsed years/days/hours/minutes/seconds.
-    // Uses calendar-aware year calculation so leap years are handled correctly.
     const startDate = new Date("2024-10-01T00:00:00");
 
     function addYears(date, years) {
@@ -142,8 +162,6 @@
 
     function updateCountUp() {
       const now = new Date();
-
-      // If we're before the start date, just show zeros (starts ticking at the start moment).
       if (now < startDate) {
         document.getElementById("years").innerText = "00";
         document.getElementById("days").innerText = "00";
@@ -153,14 +171,12 @@
         return;
       }
 
-      // Full elapsed years since startDate (calendar-accurate, handles leap years)
       let years = 0;
       while (addYears(startDate, years + 1) <= now) {
         years++;
       }
       const afterYears = addYears(startDate, years);
 
-      // Remaining time after removing full years
       let remainingMs = now - afterYears;
       const dayMs = 24 * 60 * 60 * 1000;
       const hourMs = 60 * 60 * 1000;
@@ -178,7 +194,6 @@
 
       const seconds = Math.floor(remainingMs / secMs);
 
-      // Update UI (padStart keeps the digital look)
       document.getElementById("years").innerText = years.toString().padStart(2, '0');
       document.getElementById("days").innerText = days.toString().padStart(2, '0');
       document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
@@ -191,24 +206,19 @@
     // ========= END COUNT-UP =========
 
 
-    // ========= AUDIO AUTOPLAY HELPER (unchanged) =========
+    // ========= AUDIO AUTOPLAY HELPER =========
     const audioEl = document.getElementById('bgm');
     const soundBtn = document.getElementById('sound-btn');
     let soundEnabled = false;
 
-    // Try autoplay on load; if it fails, show the button and wait for a gesture.
     function tryAutoplay() {
-      // Some browsers require volume to be set before play()
       audioEl.volume = 0.8;
-
-      // Attempt to play right away
       const playAttempt = audioEl.play();
       if (playAttempt !== undefined) {
         playAttempt.then(() => {
           soundEnabled = true;
           hideSoundButton();
         }).catch(() => {
-          // Autoplay blocked; wait for a user gesture
           showSoundButton();
           attachGestureListeners();
         });
@@ -223,16 +233,13 @@
       detachGestureListeners();
     }
 
-    // Called on a gesture (click/touch/keydown)
     function safePlayAudio() {
       if (soundEnabled) return;
-      // For Safari iOS: resuming web audio context if needed
       if (typeof window.AudioContext !== "undefined") {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (ctx.state === "suspended") {
           ctx.resume().catch(() => {});
         }
-        // We create then immediately close to poke the audio stack
         setTimeout(() => ctx.close(), 0);
       }
 
@@ -260,19 +267,16 @@
       window.removeEventListener('keydown', onFirstGesture, { capture: true });
     }
 
-    // If the tab becomes visible again after interaction, ensure playback
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && soundEnabled && audioEl.paused) {
         audioEl.play().catch(() => {});
       }
     });
 
-    // Button explicit enable
     soundBtn.addEventListener('click', () => {
       safePlayAudio();
     });
 
-    // Kick things off once the DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', tryAutoplay);
     } else {
